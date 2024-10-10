@@ -1,6 +1,6 @@
-#Exercícios: 
+# Exercícios: 
 
-##Exercícios basicos de SQL para praticas de consulta, fonte de db: Northwind e fornecido por: ChatGPT.
+## Exercícios basicos de SQL para praticas de consulta, fonte de db: Northwind e fornecido por: ChatGPT.
 
 **Exercício 1: Lista de Clientes**
 Liste todos os clientes exibindo o nome (CustomerName), cidade (City) e país (Country).
