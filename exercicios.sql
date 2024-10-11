@@ -70,3 +70,96 @@ FROM products P
 JOIN suppliers S ON P.supplier_id = S.supplier_id
 GROUP BY S.company_name,P.product_name,P.category_id
 HAVING(P.category_id) = 3;
+
+-------------- UTILIZANDO WINDOW FUNCTION--------------------------------- UTILIZANDO WINDOW FUNCTION-------------------
+
+1)Calcular a quantide total de vendas por funcionario
+
+SELECT DISTINCT
+	E.last_name, 
+	SUM(OD.quantity * OD.unit_price) OVER (PARTITION BY E.employee_id) AS vendas_total_por_funcionario
+FROM orders O
+JOIN order_details OD ON O.order_id = OD.order_id
+JOIN employees E ON O.employee_id = E.employee_id
+ORDER BY vendas_total_por_funcionario DESC;
+
+2) Calcular a quantide total de vendas por funcionario e fazer o ranking de quem vendeu mais.
+
+WITH vendas_funcionarios AS (
+
+	SELECT DISTINCT
+		E.last_name, 
+		SUM(OD.quantity * OD.unit_price) OVER (PARTITION BY E.employee_id) AS vendas_total_por_funcionario
+	FROM orders O
+	JOIN order_details OD ON O.order_id = OD.order_id
+	JOIN employees E ON O.employee_id = E.employee_id
+)
+
+SELECT
+	last_name, 
+	vendas_total_por_funcionario,
+	RANK() OVER (ORDER BY vendas_total_por_funcionario DESC) AS ranking_por_funcionario
+FROM vendas_funcionarios
+ORDER BY vendas_total_por_funcionario DESC;
+
+3) Média do valor do frete por país 
+
+SELECT DISTINCT
+	ship_country,
+	AVG(freight) OVER (PARTITION BY ship_country) AS total_frete_por_pais
+
+FROM orders
+ORDER BY ship_country;
+
+4)Quantos produtos únicos existem? Quantos produtos no total? Qual é o valor total pago?
+
+SELECT DISTINCT
+	order_id,
+	COUNT(order_id) OVER (PARTITION BY order_id) AS quantidade_produtos_unicos,
+	SUM(quantity) OVER (PARTITION BY order_id ) AS quantidade_total_produtos,
+	SUM(unit_price * quantity) OVER (PARTITION BY order_id ) AS valor_total
+		
+FROM order_details
+ORDER BY order_id;
+
+5)Quais são os valores mínimo, máximo e médio de frete pago por cada cliente? (tabela orders)
+
+SELECT DISTINCT
+
+	customer_id,
+	MIN(freight) OVER (PARTITION BY customer_id) AS valor_minimo_cliente,
+	AVG(freight) OVER (PARTITION BY customer_id) AS valor_médio_cliente,
+	MAX(freight) OVER (PARTITION BY customer_id) AS valor_máximo_cliente
+	
+FROM orders
+ORDER BY customer_id;
+
+6)Classificação (ranking) dos produtos com maior valor de venda POR order ID
+
+SELECT
+	OD.order_id,
+	P.product_name,
+	(OD.unit_price * OD.quantity) AS total_de_vendas,
+	ROW_NUMBER () OVER (ORDER BY(OD.unit_price * OD.quantity) DESC ) AS order_row_number,
+	RANK () OVER (ORDER BY(OD.unit_price * OD.quantity)DESC ) AS order_rank,
+	DENSE_RANK () OVER (ORDER BY(OD.unit_price * OD.quantity)DESC ) AS order_dense_rank
+
+FROM order_details OD
+JOIN products P ON OD.product_id = P.product_id;
+
+7)Ordenando os custos de envio pagos pelos clientes de acordo com suas datas de pedido
+
+SELECT 
+	O.customer_id,
+	S.company_name,
+	O.order_date,
+	LAG(freight) OVER (PARTITION BY customer_id ORDER BY O.order_date ASC) AS valor_frete_anterior,
+	freight AS valor_frete_atual,
+	LEAD(freight) OVER (PARTITION BY customer_id ORDER BY O.order_date ASC) AS valor_frete_posterior
+	
+FROM 
+	orders O
+JOIN 
+	shippers S ON O.ship_via = S.shipper_id
+ORDER BY 
+	O.customer_id;
